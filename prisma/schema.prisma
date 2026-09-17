@@ -1,0 +1,87 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Student {
+  id              String           @id @default(uuid())
+  username        String           @unique
+  password        String
+  createdAt       DateTime         @default(now())
+  age             Int?
+  goals           String?
+  interests       String?
+  lexicalBaseline String           // "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+  preferredMode   String           @default("TEXT") // "TEXT" | "VISUAL" | "AUDIO"
+  masteryStates   MasteryState[]
+  interactions    InteractionLog[]
+}
+
+model KnowledgeNode {
+  id               String           @id
+  label            String
+  tier             Int
+  description      String
+  isAtomic         Boolean          @default(true)
+  parentDomainId   String?          // For the branching tree
+  prerequisites    Prerequisite[]   @relation("TargetPrerequisites")
+  dependents       Prerequisite[]   @relation("SourcePrerequisites")
+  masteryStates    MasteryState[]
+  problems         Problem[]
+}
+
+model Prerequisite {
+  sourceId String
+  targetId String
+  source   KnowledgeNode @relation("SourcePrerequisites", fields: [sourceId], references: [id])
+  target   KnowledgeNode @relation("TargetPrerequisites", fields: [targetId], references: [id])
+
+  @@id([sourceId, targetId])
+}
+
+model Problem {
+  id              String           @id @default(uuid())
+  nodeId          String
+  node            KnowledgeNode    @relation(fields: [nodeId], references: [id])
+  textPrompt      String
+  visualDataJson  String           // JSON for SVG/interactive canvas
+  audioPromptText String
+  expectedAnswer  String
+  antiPatterns    String           // JSON mapping wrong answers to misconceptions
+  interactions    InteractionLog[]
+}
+
+model MasteryState {
+  id        String        @id @default(uuid())
+  studentId String
+  nodeId    String
+  pMastery  Float         @default(0.1)
+  isMastered Boolean      @default(false)
+  updatedAt DateTime      @updatedAt
+  student   Student       @relation(fields: [studentId], references: [id])
+  node      KnowledgeNode @relation(fields: [nodeId], references: [id])
+
+  @@unique([studentId, nodeId])
+}
+
+model InteractionLog {
+  id                 String   @id @default(uuid())
+  studentId          String
+  problemId          String
+  modalityUsed       String   // "TEXT" | "VISUAL" | "AUDIO"
+  isCorrect          Boolean
+  userSubmission     String
+  timeToFirstAction  Int
+  hesitationPauses   Int
+  answerFlips        Int
+  cognitiveFriction  Float
+  diagnosedGapNodeId String?
+  misconceptionLabel String?
+  createdAt          DateTime @default(now())
+  student            Student  @relation(fields: [studentId], references: [id])
+  problem            Problem  @relation(fields: [problemId], references: [id])
+}
