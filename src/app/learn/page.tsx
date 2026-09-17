@@ -197,29 +197,37 @@ export default function LearnPage() {
                   </div>
                 </div>
 
-                {/* Prerequisite Visual Graph */}
-                {batchReport.prerequisiteGraph?.sources?.length > 0 && (
+                {/* Visual Learning Map for Wrong Answers */}
+                {batchReport.learningMap?.length > 0 && (
                   <div className="p-8 bg-black/40 border border-white/10 rounded-xl flex flex-col items-center">
                     <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-8 flex items-center gap-2">
-                      <Brain size={16} /> Prerequisite Skill Tree
+                      <Brain size={16} /> Diagnostic Failure Map
                     </h4>
-                    <div className="flex flex-col items-center w-full">
-                      <div className="flex flex-wrap justify-center gap-6 mb-6 w-full relative">
-                        {batchReport.prerequisiteGraph.sources.map((src: any) => (
-                          <div key={src.id} className="relative z-10 px-6 py-3 bg-cyan-900/40 border border-cyan-500/50 rounded-lg text-cyan-200 text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                            {src.label}
-                            {/* Down arrow connector */}
-                            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-px h-6 bg-cyan-500/50"></div>
+                    <div className="flex flex-col w-full gap-4 relative">
+                      {/* Central Line */}
+                      <div className="absolute top-0 bottom-0 left-8 md:left-1/2 w-px bg-white/10 -translate-x-1/2"></div>
+                      
+                      {batchReport.learningMap.map((mapItem: any, idx: number) => (
+                        <div key={idx} className="flex flex-col md:flex-row items-center w-full gap-4 relative z-10">
+                          {/* Question Node (Left side on desktop) */}
+                          <div className="w-full md:w-1/2 flex md:justify-end">
+                            <div className="px-4 py-3 bg-red-900/40 border border-red-500/50 rounded-lg text-red-200 text-sm font-bold shadow-[0_0_15px_rgba(239,68,68,0.2)] md:mr-6 w-64 text-center">
+                              Question {mapItem.qNum} (Failed)
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                      <div className="w-px h-6 bg-gradient-to-b from-cyan-500/50 to-red-500/50 mb-2"></div>
-                      <div className="px-8 py-4 bg-red-900/40 border border-red-500/50 rounded-lg text-red-200 font-bold text-lg shadow-[0_0_20px_rgba(239,68,68,0.3)]">
-                        {batchReport.prerequisiteGraph.target.label} (Target)
-                      </div>
-                      <p className="text-xs text-slate-500 mt-6 max-w-md text-center uppercase tracking-widest">
-                        Master the cyan foundational nodes above before attempting to clear the target node again.
-                      </p>
+                          
+                          {/* Connector Dot */}
+                          <div className="hidden md:block w-3 h-3 rounded-full bg-cyan-500 absolute left-1/2 -translate-x-1/2 shadow-[0_0_10px_#06b6d4]"></div>
+
+                          {/* Relearn Topic Node (Right side on desktop) */}
+                          <div className="w-full md:w-1/2 flex md:justify-start">
+                            <div className="px-4 py-3 bg-cyan-900/40 border border-cyan-500/50 rounded-lg text-cyan-200 text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.2)] md:ml-6 w-64 text-center">
+                              Relearn: {mapItem.topicToRelearn}
+                              <p className="text-[10px] text-cyan-400/70 mt-1 font-normal uppercase tracking-wider">{mapItem.reason}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

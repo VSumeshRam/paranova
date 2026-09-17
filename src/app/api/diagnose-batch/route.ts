@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
     });
     if (!node) return NextResponse.json({ error: 'Node not found' }, { status: 404 });
 
-    const totalCorrect = results.filter((r) => r.isCorrect).length;
-    const wrongResults = results.filter((r) => !r.isCorrect);
+    const mappedResults = results.map((r: any, i: number) => ({ ...r, qNum: i + 1 }));
+    const totalCorrect = mappedResults.filter((r: any) => r.isCorrect).length;
+    const wrongResults = mappedResults.filter((r: any) => !r.isCorrect);
 
     let newPMastery = BKT_PARAMS.P_L0;
     let isMastered = false;
@@ -56,13 +57,14 @@ export async function POST(req: NextRequest) {
     }
 
     let remediationReport = 'Great job! You showed strong mastery of this topic.';
+    let learningMap = [];
     
     if (wrongResults.length > 0) {
       const geminiKey = process.env.GEMINI_API_KEY;
       if (geminiKey) {
         try {
-          const wrongAnswersContext = wrongResults.map((r, i) => 
-            `Mistake ${i + 1}:\nQuestion: "${r.textPrompt}"\nStudent Answered: "${r.submission}"\nCorrect Answer: "${r.expectedAnswer}"`
+          const wrongAnswersContext = wrongResults.map((r: any) => 
+            `Question ${r.qNum}:\nPrompt: "${r.textPrompt}"\nStudent Answered: "${r.submission}"\nCorrect Answer: "${r.expectedAnswer}"`
           ).join('\n\n');
 
         const prompt = `The student just completed a 10-question quiz on "${node.label}" (${node.description}) and made ${wrongResults.length} mistakes.
@@ -72,7 +74,14 @@ ${wrongAnswersContext}
 
 Analyze their mistakes and provide a comprehensive 2-paragraph study remediation report addressing their fundamental misunderstandings. 
 Then, on a new line, provide exactly 3 bullet points of highly specific learning materials (e.g. YouTube search terms, specific textbook concepts to Google, or prerequisite topics). Format the bullets with a '-' prefix.
-Finally, at the very end of your response, output a JSON array of exactly 2 or 3 foundational prerequisite topics (short 1-3 word strings) that this student must review. Enclose the JSON array in <PREREQS> tags. E.g. <PREREQS>["Algebra", "Basic Physics"]</PREREQS>`;
+Finally, at the very end of your response, output a JSON array of objects mapping the EXACT failed Question Numbers to the specific micro-topic the student must relearn to fix that mistake. Enclose the JSON array in <LEARNING_MAP> tags.
+Example format:
+<LEARNING_MAP>
+[
+  { "qNum": 3, "topicToRelearn": "Thermodynamics Law 2", "reason": "Failed to understand entropy" },
+  { "qNum": 7, "topicToRelearn": "Kinetic Energy", "reason": "Confused formula with potential energy" }
+]
+</LEARNING_MAP>`;
 
         const llmRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`, {
           method: "POST",
@@ -93,15 +102,14 @@ Finally, at the very end of your response, output a JSON array of exactly 2 or 3
     }
   }
 
-  // Extract <PREREQS> array if it exists
-  let aiPrereqs: string[] = [];
-  const prereqMatch = remediationReport.match(/<PREREQS>([\s\S]*?)<\/PREREQS>/);
-  if (prereqMatch) {
+  // Extract <LEARNING_MAP> array if it exists
+  const mapMatch = remediationReport.match(/<LEARNING_MAP>([\s\S]*?)<\/LEARNING_MAP>/);
+  if (mapMatch) {
     try {
-      aiPrereqs = JSON.parse(prereqMatch[1]);
-    } catch (e) { console.error("Failed to parse AI prereqs", e); }
+      learningMap = JSON.parse(mapMatch[1]);
+    } catch (e) { console.error("Failed to parse AI learning map", e); }
     // Remove the ugly tag from the user-facing report
-    remediationReport = remediationReport.replace(/<PREREQS>[\s\S]*?<\/PREREQS>/, '').trim();
+    remediationReport = remediationReport.replace(/<LEARNING_MAP>[\s\S]*?<\/LEARNING_MAP>/, '').trim();
   }
 
   if (studentId) {
@@ -116,30 +124,14 @@ Finally, at the very end of your response, output a JSON array of exactly 2 or 3
     });
   }
 
-  // Fetch prerequisite graph to show what foundational classes to re-take
-  const prerequisites = await prisma.prerequisite.findMany({
-    where: { targetId: nodeId },
-    include: { source: true }
+  return NextResponse.json({
+    score: totalCorrect,
+    total: results.length,
+    newMasteryProbability: newPMastery,
+    isMastered,
+    remediationReport,
+    learningMap
   });
-
-  let prerequisiteGraph = {
-    target: { id: node.id, label: node.label },
-    sources: prerequisites.map(p => ({ id: p.source.id, label: p.source.label }))
-  };
-
-  // Fallback to AI-generated prereqs if DB relations are missing (e.g. custom/random topics)
-  if (prerequisiteGraph.sources.length === 0 && aiPrereqs.length > 0) {
-    prerequisiteGraph.sources = aiPrereqs.map((p, i) => ({ id: `AI_PRE_${i}`, label: p }));
-  }
-
-    return NextResponse.json({
-      score: totalCorrect,
-      total: results.length,
-      newMasteryProbability: newPMastery,
-      isMastered,
-      remediationReport,
-      prerequisiteGraph
-    });
 
   } catch (error) {
     if (error instanceof z.ZodError) {
