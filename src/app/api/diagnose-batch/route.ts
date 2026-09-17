@@ -65,55 +65,72 @@ export async function POST(req: NextRequest) {
             `Mistake ${i + 1}:\nQuestion: "${r.textPrompt}"\nStudent Answered: "${r.submission}"\nCorrect Answer: "${r.expectedAnswer}"`
           ).join('\n\n');
 
-          const prompt = `The student just completed a 10-question quiz on "${node.label}" (${node.description}) and made ${wrongResults.length} mistakes.
+        const prompt = `The student just completed a 10-question quiz on "${node.label}" (${node.description}) and made ${wrongResults.length} mistakes.
 Here are the specific mistakes they made:
 
 ${wrongAnswersContext}
 
 Analyze their mistakes and provide a comprehensive 2-paragraph study remediation report addressing their fundamental misunderstandings. 
-Then, on a new line, provide exactly 3 bullet points of highly specific learning materials (e.g. YouTube search terms, specific textbook concepts to Google, or prerequisite topics). Format the bullets with a '-' prefix.`;
+Then, on a new line, provide exactly 3 bullet points of highly specific learning materials (e.g. YouTube search terms, specific textbook concepts to Google, or prerequisite topics). Format the bullets with a '-' prefix.
+Finally, at the very end of your response, output a JSON array of exactly 2 or 3 foundational prerequisite topics (short 1-3 word strings) that this student must review. Enclose the JSON array in <PREREQS> tags. E.g. <PREREQS>["Algebra", "Basic Physics"]</PREREQS>`;
 
-          const llmRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }]
-            })
-          });
-          
-          const data = await llmRes.json();
-          remediationReport = data.candidates[0].content.parts[0].text;
-        } catch (e) {
-          console.error("LLM batch suggestion failed", e);
-          remediationReport = `You missed ${wrongResults.length} questions. Please review the core concepts of ${node.label}.`;
-        }
-      } else {
+        const llmRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+        
+        const data = await llmRes.json();
+        remediationReport = data.candidates[0].content.parts[0].text;
+      } catch (e) {
+        console.error("LLM batch suggestion failed", e);
         remediationReport = `You missed ${wrongResults.length} questions. Please review the core concepts of ${node.label}.`;
       }
+    } else {
+      remediationReport = `You missed ${wrongResults.length} questions. Please review the core concepts of ${node.label}.`;
     }
+  }
 
-    if (studentId) {
-      await prisma.sessionReport.create({
-        data: {
-          studentId,
-          nodeId,
-          score: totalCorrect,
-          totalQuestions: results.length,
-          remediationText: remediationReport
-        }
-      });
-    }
+  // Extract <PREREQS> array if it exists
+  let aiPrereqs: string[] = [];
+  const prereqMatch = remediationReport.match(/<PREREQS>([\s\S]*?)<\/PREREQS>/);
+  if (prereqMatch) {
+    try {
+      aiPrereqs = JSON.parse(prereqMatch[1]);
+    } catch (e) { console.error("Failed to parse AI prereqs", e); }
+    // Remove the ugly tag from the user-facing report
+    remediationReport = remediationReport.replace(/<PREREQS>[\s\S]*?<\/PREREQS>/, '').trim();
+  }
 
-    // Fetch prerequisite graph to show what foundational classes to re-take
-    const prerequisites = await prisma.prerequisite.findMany({
-      where: { targetId: nodeId },
-      include: { source: true }
+  if (studentId) {
+    await prisma.sessionReport.create({
+      data: {
+        studentId,
+        nodeId,
+        score: totalCorrect,
+        totalQuestions: results.length,
+        remediationText: remediationReport
+      }
     });
+  }
 
-    const prerequisiteGraph = {
-      target: { id: node.id, label: node.label },
-      sources: prerequisites.map(p => ({ id: p.source.id, label: p.source.label }))
-    };
+  // Fetch prerequisite graph to show what foundational classes to re-take
+  const prerequisites = await prisma.prerequisite.findMany({
+    where: { targetId: nodeId },
+    include: { source: true }
+  });
+
+  let prerequisiteGraph = {
+    target: { id: node.id, label: node.label },
+    sources: prerequisites.map(p => ({ id: p.source.id, label: p.source.label }))
+  };
+
+  // Fallback to AI-generated prereqs if DB relations are missing (e.g. custom/random topics)
+  if (prerequisiteGraph.sources.length === 0 && aiPrereqs.length > 0) {
+    prerequisiteGraph.sources = aiPrereqs.map((p, i) => ({ id: `AI_PRE_${i}`, label: p }));
+  }
 
     return NextResponse.json({
       score: totalCorrect,
