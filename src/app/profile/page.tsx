@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSessionStore } from '@/lib/store';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { User, Activity } from 'lucide-react';
+import { User, Activity, BookOpen } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
