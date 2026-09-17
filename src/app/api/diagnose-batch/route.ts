@@ -104,12 +104,24 @@ Then, on a new line, provide exactly 3 bullet points of highly specific learning
       });
     }
 
+    // Fetch prerequisite graph to show what foundational classes to re-take
+    const prerequisites = await prisma.prerequisite.findMany({
+      where: { targetId: nodeId },
+      include: { source: true }
+    });
+
+    const prerequisiteGraph = {
+      target: { id: node.id, label: node.label },
+      sources: prerequisites.map(p => ({ id: p.source.id, label: p.source.label }))
+    };
+
     return NextResponse.json({
       score: totalCorrect,
       total: results.length,
       newMasteryProbability: newPMastery,
       isMastered,
-      remediationReport
+      remediationReport,
+      prerequisiteGraph
     });
 
   } catch (error) {

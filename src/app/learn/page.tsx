@@ -178,22 +178,51 @@ export default function LearnPage() {
 
     return (
       <main className="min-h-screen flex flex-col p-6 items-center py-12">
-         <div className="w-full max-w-4xl glass-panel p-8">
+          <div className="w-full max-w-4xl glass-panel p-8">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 uppercase tracking-wider mb-2 text-center">Exam Complete</h1>
             <p className="text-slate-400 text-center mb-8 uppercase tracking-widest text-sm">You scored {score} out of {MAX_QUESTIONS}</p>
             
             {/* Unified Remediation Report */}
             {score < MAX_QUESTIONS && (
-              <div className="p-6 mb-8 bg-purple-900/20 border border-purple-500/30 rounded-xl">
-                <h3 className="text-xl font-bold uppercase tracking-wider mb-4 text-purple-400">Comprehensive Remediation Report</h3>
-                <div className="text-purple-200 text-sm leading-relaxed space-y-2">
-                  {batchReport.remediationReport?.split('\n').map((line: string, i: number) => (
-                    <p key={i} className={`${line.trim().startsWith('-') ? 'ml-4 flex gap-2 items-start text-cyan-200' : ''}`}>
-                      {line.trim().startsWith('-') && <span className="text-cyan-400 mt-[2px]">•</span>}
-                      <span>{line.replace(/^-/, '').trim()}</span>
-                    </p>
-                  ))}
+              <div className="mb-8">
+                <div className="p-6 bg-purple-900/20 border border-purple-500/30 rounded-xl mb-6">
+                  <h3 className="text-xl font-bold uppercase tracking-wider mb-4 text-purple-400">Comprehensive Remediation Report</h3>
+                  <div className="text-purple-200 text-sm leading-relaxed space-y-2">
+                    {batchReport.remediationReport?.split('\n').map((line: string, i: number) => (
+                      <p key={i} className={`${line.trim().startsWith('-') ? 'ml-4 flex gap-2 items-start text-cyan-200' : ''}`}>
+                        {line.trim().startsWith('-') && <span className="text-cyan-400 mt-[2px]">•</span>}
+                        <span>{line.replace(/^-/, '').trim()}</span>
+                      </p>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Prerequisite Visual Graph */}
+                {batchReport.prerequisiteGraph?.sources?.length > 0 && (
+                  <div className="p-8 bg-black/40 border border-white/10 rounded-xl flex flex-col items-center">
+                    <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-8 flex items-center gap-2">
+                      <Brain size={16} /> Prerequisite Skill Tree
+                    </h4>
+                    <div className="flex flex-col items-center w-full">
+                      <div className="flex flex-wrap justify-center gap-6 mb-6 w-full relative">
+                        {batchReport.prerequisiteGraph.sources.map((src: any) => (
+                          <div key={src.id} className="relative z-10 px-6 py-3 bg-cyan-900/40 border border-cyan-500/50 rounded-lg text-cyan-200 text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                            {src.label}
+                            {/* Down arrow connector */}
+                            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-px h-6 bg-cyan-500/50"></div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="w-px h-6 bg-gradient-to-b from-cyan-500/50 to-red-500/50 mb-2"></div>
+                      <div className="px-8 py-4 bg-red-900/40 border border-red-500/50 rounded-lg text-red-200 font-bold text-lg shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                        {batchReport.prerequisiteGraph.target.label} (Target)
+                      </div>
+                      <p className="text-xs text-slate-500 mt-6 max-w-md text-center uppercase tracking-widest">
+                        Master the cyan foundational nodes above before attempting to clear the target node again.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
