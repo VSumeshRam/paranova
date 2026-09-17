@@ -32,30 +32,32 @@ export async function POST(req: NextRequest) {
 
     if (!geminiKey) {
       // Mock response if no key is provided
-      return NextResponse.json({
-        id: 'mock-problem-' + Date.now(),
+      const mockQuestions = Array.from({ length: 10 }).map((_, i) => ({
+        id: `mock-problem-${Date.now()}-${i}`,
         nodeId: node.id,
-        textPrompt: `[MOCK] Explain the concept of ${node.label}: ${node.description}`,
+        textPrompt: `[MOCK ${i + 1}] Explain the concept of ${node.label}: ${node.description}`,
         expectedAnswer: 'mock answer',
         antiPatterns: JSON.stringify({ 'wrong': 'MOCK_MISCONCEPTION' }),
-      });
+      }));
+      return NextResponse.json(mockQuestions);
     }
 
     // Call Gemini API
-    const prompt = `You are a cognitive diagnostic AI. Generate a single quiz question to test the user's understanding of the following atomic subject:
-    Topic: ${node.label}
-    Description: ${node.description}
-    ${misconceptionContext}
-    
-    Return ONLY a valid JSON object with the following schema, and no markdown formatting or extra text:
+    const prompt = `You are a strict, highly intelligent expert backend system for an adaptive learning platform.
+Generate exactly 10 distinct, non-repetitive multiple-choice questions testing the student's mastery of the topic: "${node.label}" (Description: ${node.description}).
+${misconceptionContext}
+
+Your response must be a JSON array of 10 objects. Do not wrap it in any other JSON object. Each object in the array MUST strictly follow this schema:
 {
-  "textPrompt": "The question text",
-  "expectedAnswer": "The exact correct answer (short)",
+  "textPrompt": "The actual question text (can include scenario, math, code, or context).",
+  "expectedAnswer": "The exact correct answer as a short string",
   "antiPatterns": {
-    "A common wrong answer": "THE_UNDERLYING_MISCONCEPTION_LABEL",
-    "Another common wrong answer": "ANOTHER_MISCONCEPTION_LABEL"
+    "A highly plausible wrong answer (distractor 1)": "UPPERCASE_SNAKE_CASE_MISCONCEPTION_LABEL_1",
+    "A highly plausible wrong answer (distractor 2)": "UPPERCASE_SNAKE_CASE_MISCONCEPTION_LABEL_2",
+    "A highly plausible wrong answer (distractor 3)": "UPPERCASE_SNAKE_CASE_MISCONCEPTION_LABEL_3"
   }
-}`;
+}
+Return ONLY the raw JSON array. Do not use markdown wrappers.`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`, {
       method: "POST",
@@ -81,16 +83,21 @@ export async function POST(req: NextRequest) {
     // Clean up potential markdown formatting just in case
     content = content.replace(/```json/g, '').replace(/```/g, '').trim();
     
-    const parsed = JSON.parse(content);
+    const parsedArray = JSON.parse(content);
 
-    // Generate a temporary ID (since we don't save it to DB to keep it perfectly dynamic)
-    return NextResponse.json({
-      id: 'dynamic-' + Date.now(),
+    if (!Array.isArray(parsedArray)) {
+      throw new Error("LLM did not return a JSON array");
+    }
+
+    const mappedQuestions = parsedArray.map((parsed: any, idx: number) => ({
+      id: `dynamic-${Date.now()}-${idx}`,
       nodeId: node.id,
       textPrompt: parsed.textPrompt,
       expectedAnswer: parsed.expectedAnswer,
       antiPatterns: JSON.stringify(parsed.antiPatterns),
-    });
+    }));
+
+    return NextResponse.json(mappedQuestions);
 
   } catch (error) {
     console.error(error);
