@@ -19,6 +19,7 @@ model Student {
   preferredMode   String           @default("TEXT") // "TEXT" | "VISUAL" | "AUDIO"
   masteryStates   MasteryState[]
   interactions    InteractionLog[]
+  sessionReports  SessionReport[]
 }
 
 model KnowledgeNode {
@@ -32,6 +33,7 @@ model KnowledgeNode {
   dependents       Prerequisite[]   @relation("SourcePrerequisites")
   masteryStates    MasteryState[]
   problems         Problem[]
+  sessionReports   SessionReport[]
 }
 
 model Prerequisite {
@@ -84,4 +86,16 @@ model InteractionLog {
   createdAt          DateTime @default(now())
   student            Student  @relation(fields: [studentId], references: [id])
   problem            Problem  @relation(fields: [problemId], references: [id])
+}
+
+model SessionReport {
+  id               String        @id @default(uuid())
+  studentId        String
+  nodeId           String
+  score            Int
+  totalQuestions   Int
+  remediationText  String
+  createdAt        DateTime      @default(now())
+  student          Student       @relation(fields: [studentId], references: [id])
+  node             KnowledgeNode @relation(fields: [nodeId], references: [id])
 }

@@ -92,6 +92,18 @@ Then, on a new line, provide exactly 3 bullet points of highly specific learning
       }
     }
 
+    if (studentId) {
+      await prisma.sessionReport.create({
+        data: {
+          studentId,
+          nodeId,
+          score: totalCorrect,
+          totalQuestions: results.length,
+          remediationText: remediationReport
+        }
+      });
+    }
+
     return NextResponse.json({
       score: totalCorrect,
       total: results.length,

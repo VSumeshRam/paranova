@@ -41,7 +41,6 @@ export default function ExplorePage() {
       });
       const data = await res.json();
       
-      // Launch directly into the quiz for the custom topic
       setSession(studentId!, data.nodeId);
       router.push('/learn');
     } catch (e) {
@@ -50,9 +49,29 @@ export default function ExplorePage() {
     }
   };
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center text-cyan-400">Loading Knowledge Matrix...</div>;
+  const handleRandomTopic = async () => {
+    setIsSearching(true);
+    try {
+      const res = await fetch('/api/random-topic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId })
+      });
+      const data = await res.json();
+      setSession(studentId!, data.nodeId);
+      router.push('/learn');
+    } catch (e) {
+      console.error(e);
+      setIsSearching(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-cyan-400 uppercase tracking-widest text-sm animate-pulse">Scanning Global Knowledge Network...</div>;
+  }
 
   const currentChildren = nodes.filter(n => n.parentDomainId === currentNodeId);
+  const currentParentNode = currentNodeId ? nodes.find(n => n.id === currentNodeId) : null;
 
   const handleNodeClick = (node: any) => {
     if (node.isAtomic) {
@@ -64,16 +83,13 @@ export default function ExplorePage() {
   };
 
   const handleGoBack = () => {
-    if (!currentNodeId) return;
     const current = nodes.find(n => n.id === currentNodeId);
     setCurrentNodeId(current?.parentDomainId || null);
   };
 
-  const currentParentNode = nodes.find(n => n.id === currentNodeId);
-
   return (
     <main className="min-h-screen flex flex-col items-center py-12 px-4">
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-4xl">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-white/10 border border-white/20 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.3)] text-cyan-400">
@@ -92,26 +108,38 @@ export default function ExplorePage() {
           </button>
         </div>
 
-        {/* Global Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="mb-8 flex gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-500" size={20} />
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search ANY topic to generate a dynamic AI Quiz on the fly..." 
-              className="glass-input w-full pl-12 py-4 shadow-[0_0_15px_rgba(6,182,212,0.1)]"
-            />
-          </div>
+        {/* Global Search Bar & Random Button */}
+        <div className="mb-8 flex gap-3">
+          <form onSubmit={handleSearchSubmit} className="flex flex-1 gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-500" size={20} />
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Request a custom topic (e.g. Quantum Computing, French Revolution)" 
+                className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                disabled={isSearching}
+              />
+            </div>
+            <button 
+              type="submit" 
+              disabled={isSearching || !searchQuery.trim()}
+              className="glass-btn-primary px-6"
+            >
+              {isSearching ? 'Generating...' : 'Learn Anything'}
+            </button>
+          </form>
           <button 
-            type="submit" 
-            disabled={isSearching || !searchQuery.trim()}
-            className="glass-btn-primary px-8 whitespace-nowrap"
+            type="button" 
+            onClick={handleRandomTopic}
+            disabled={isSearching}
+            className="glass-btn-secondary border-purple-500/30 text-purple-300 hover:bg-purple-900/30 flex items-center gap-2"
           >
-            {isSearching ? 'Generating...' : 'Generate AI Quiz'}
+            <span className="text-xl">🎲</span>
+            <span className="uppercase tracking-widest text-xs font-bold">Random Challenge</span>
           </button>
-        </form>
+        </div>
 
         <div className="glass-panel overflow-hidden">
           {/* Breadcrumbs */}

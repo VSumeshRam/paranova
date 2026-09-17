@@ -41,10 +41,18 @@ export async function GET(
       }
     }
 
+    const sessionReports = await prisma.sessionReport.findMany({
+      where: { studentId: params.studentId },
+      orderBy: { createdAt: 'desc' },
+      include: { node: true },
+      take: 10
+    });
+
     return NextResponse.json({
       nodes,
       edges,
       masteryStates,
+      sessionReports,
       activeNodeId,
       diagnosedGapNodeId,
       activeAntiPatternNodeId

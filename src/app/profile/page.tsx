@@ -191,6 +191,51 @@ export default function ProfilePage() {
              </div>
           </div>
         </div>
+
+        {/* Historical AI Study Reports */}
+        <div className="mt-8 glass-panel p-6">
+           <h2 className="text-lg font-bold mb-6 flex items-center gap-3 uppercase tracking-wider text-slate-200 border-b border-white/10 pb-4">
+             <BookOpen className="text-purple-400" size={20} /> Historical AI Study Reports
+           </h2>
+           <div className="space-y-6">
+              {!data.sessionReports || data.sessionReports.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 uppercase tracking-widest text-sm">
+                  No exam reports generated yet. Complete a batch exam to generate learning materials.
+                </div>
+              ) : (
+                data.sessionReports.map((report: any) => (
+                  <div key={report.id} className="p-6 bg-black/40 border border-white/10 rounded-xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-400 to-purple-500"></div>
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-cyan-300">{report.node?.label || 'Custom Topic'}</h3>
+                        <p className="text-xs text-slate-500 uppercase tracking-widest mt-1">
+                          {new Date(report.createdAt).toLocaleDateString()} at {new Date(report.createdAt).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xl font-black ${report.score === report.totalQuestions ? 'text-green-400' : 'text-purple-400'}`}>
+                          {report.score} / {report.totalQuestions}
+                        </div>
+                        <p className="text-xs text-slate-500 uppercase tracking-widest">Score</p>
+                      </div>
+                    </div>
+                    {report.score < report.totalQuestions && (
+                      <div className="p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg text-purple-200 text-sm leading-relaxed space-y-2">
+                        {report.remediationText.split('\n').map((line: string, i: number) => (
+                          <p key={i} className={`${line.trim().startsWith('-') ? 'ml-4 flex gap-2 items-start text-cyan-200' : ''}`}>
+                            {line.trim().startsWith('-') && <span className="text-cyan-400 mt-[2px]">•</span>}
+                            <span>{line.replace(/^-/, '').trim()}</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+           </div>
+        </div>
+
       </div>
     </main>
   );
