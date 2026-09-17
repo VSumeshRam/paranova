@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSessionStore } from '@/lib/store';
-import { ModalityCanvas } from '@/components/ModalityCanvas';
 import { TelemetryConsole } from '@/components/TelemetryConsole';
 import { Brain, ArrowRight, Home, CheckCircle, XCircle } from 'lucide-react';
 
@@ -20,7 +19,6 @@ export default function LearnPage() {
   const [rateLimitError, setRateLimitError] = useState(false);
   
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
-  const [submission, setSubmission] = useState('');
   
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
@@ -88,13 +86,9 @@ export default function LearnPage() {
     setShuffledOptions(options);
   };
 
-  const handleNextProblem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!submission) return;
-
-    const newAnswers = [...userAnswers, submission];
+  const handleOptionClick = async (selectedOption: string) => {
+    const newAnswers = [...userAnswers, selectedOption];
     setUserAnswers(newAnswers);
-    setSubmission('');
 
     if (currentIdx + 1 >= problems.length) {
       // Finished all questions
@@ -254,36 +248,22 @@ export default function LearnPage() {
           <div className="glass-panel p-8 flex-1 flex flex-col">
             <div className="mb-8">
               <h2 className="text-xl text-white mb-6 leading-relaxed">{currentProblem.textPrompt}</h2>
-              <ModalityCanvas problem={currentProblem} currentModality={telemetry.activeModality} />
             </div>
 
-            <form onSubmit={handleNextProblem} className="mt-auto">
+            <div className="mt-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {shuffledOptions.map((option, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => setSubmission(option)}
-                    className={`p-4 text-left rounded-xl border transition-all ${
-                      submission === option 
-                        ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300' 
-                        : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
-                    }`}
+                    onClick={() => handleOptionClick(option)}
+                    className="p-4 text-left rounded-xl border transition-all bg-white/5 border-white/10 text-slate-300 hover:bg-cyan-500/20 hover:border-cyan-400 hover:text-cyan-300"
                   >
                     {option}
                   </button>
                 ))}
               </div>
-              <div className="flex gap-4 mt-6">
-                <button
-                  type="submit"
-                  disabled={!submission}
-                  className="glass-btn-primary flex-1 py-4 uppercase tracking-widest font-bold"
-                >
-                  {currentIdx + 1 === problems.length ? 'Submit Final Exam' : 'Next Question'} <ArrowRight size={16} className="inline ml-2" />
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         )}
       </div>
