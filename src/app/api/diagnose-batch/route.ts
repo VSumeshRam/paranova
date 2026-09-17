@@ -112,7 +112,8 @@ ${wrongAnswersContext}
         nodeId,
         score: totalCorrect,
         totalQuestions: results.length,
-        remediationText: remediationReport
+        remediationText: remediationReport,
+        learningMapJson: learningMap.length > 0 ? JSON.stringify(learningMap) : null
       }
     });
   }

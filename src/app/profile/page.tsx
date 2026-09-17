@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSessionStore } from '@/lib/store';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { User, Activity, BookOpen } from 'lucide-react';
+import { User, Activity, BookOpen, Brain } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -242,6 +242,44 @@ export default function ProfilePage() {
                           );
                         })}
                       </div>
+
+                      {/* Diagnostic Failure Map (If exists) */}
+                      {report.learningMapJson && (
+                        <div className="mt-4 p-6 bg-black/40 border border-white/10 rounded-xl flex flex-col items-center">
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                            <Brain size={14} /> Diagnostic Failure Map
+                          </h4>
+                          <div className="flex flex-col w-full gap-4 relative">
+                            {/* Central Line */}
+                            <div className="absolute top-0 bottom-0 left-8 md:left-1/2 w-px bg-white/10 -translate-x-1/2"></div>
+                            
+                            {(() => {
+                              try {
+                                const learningMap = JSON.parse(report.learningMapJson);
+                                return learningMap.map((mapItem: any, idx: number) => (
+                                  <div key={idx} className="flex flex-col md:flex-row items-center w-full gap-4 relative z-10">
+                                    <div className="w-full md:w-1/2 flex md:justify-end">
+                                      <div className="px-4 py-2 bg-red-900/40 border border-red-500/50 rounded-lg text-red-200 text-xs font-bold shadow-[0_0_10px_rgba(239,68,68,0.2)] md:mr-6 w-48 text-center">
+                                        Question {mapItem.qNum} (Failed)
+                                      </div>
+                                    </div>
+                                    <div className="hidden md:block w-2 h-2 rounded-full bg-cyan-500 absolute left-1/2 -translate-x-1/2 shadow-[0_0_10px_#06b6d4]"></div>
+                                    <div className="w-full md:w-1/2 flex md:justify-start">
+                                      <div className="px-4 py-2 bg-cyan-900/40 border border-cyan-500/50 rounded-lg text-cyan-200 text-xs font-bold shadow-[0_0_10px_rgba(6,182,212,0.2)] md:ml-6 w-48 text-center">
+                                        Relearn: {mapItem.topicToRelearn}
+                                        <p className="text-[9px] text-cyan-400/70 mt-1 font-normal uppercase tracking-wider leading-tight">{mapItem.reason}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ));
+                              } catch(e) {
+                                return null;
+                              }
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                 ))
               )}

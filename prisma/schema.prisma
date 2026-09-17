@@ -95,6 +95,7 @@ model SessionReport {
   score            Int
   totalQuestions   Int
   remediationText  String
+  learningMapJson  String?       // JSON string storing the diagnostic failure map
   createdAt        DateTime      @default(now())
   student          Student       @relation(fields: [studentId], references: [id])
   node             KnowledgeNode @relation(fields: [nodeId], references: [id])
