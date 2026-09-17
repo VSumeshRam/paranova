@@ -98,7 +98,8 @@ ${wrongAnswersContext}
   const mapMatch = remediationReport.match(/<LEARNING_MAP>([\s\S]*?)<\/LEARNING_MAP>/);
   if (mapMatch) {
     try {
-      learningMap = JSON.parse(mapMatch[1]);
+      let rawJson = mapMatch[1].replace(/```json/g, '').replace(/```/g, '').trim();
+      learningMap = JSON.parse(rawJson);
     } catch (e) { console.error("Failed to parse AI learning map", e); }
     // Remove the ugly tag from the user-facing report
     remediationReport = remediationReport.replace(/<LEARNING_MAP>[\s\S]*?<\/LEARNING_MAP>/, '').trim();
