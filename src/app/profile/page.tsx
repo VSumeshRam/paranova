@@ -204,33 +204,45 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 data.sessionReports.map((report: any) => (
-                  <div key={report.id} className="p-6 bg-black/40 border border-white/10 rounded-xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-400 to-purple-500"></div>
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-cyan-300">{report.node?.label || 'Custom Topic'}</h3>
-                        <p className="text-xs text-slate-500 uppercase tracking-widest mt-1">
-                          {new Date(report.createdAt).toLocaleDateString()} at {new Date(report.createdAt).toLocaleTimeString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div className={`text-xl font-black ${report.score === report.totalQuestions ? 'text-green-400' : 'text-purple-400'}`}>
-                          {report.score} / {report.totalQuestions}
+                    <div key={report.id} className="p-6 bg-black/40 border border-white/10 rounded-xl relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-400 to-purple-500"></div>
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-xl font-bold text-cyan-300">{report.node?.label || 'Custom Topic'}</h3>
+                          <p className="text-xs text-slate-500 uppercase tracking-widest mt-1">
+                            {new Date(report.createdAt).toLocaleDateString()} at {new Date(report.createdAt).toLocaleTimeString()}
+                          </p>
                         </div>
-                        <p className="text-xs text-slate-500 uppercase tracking-widest">Score</p>
+                        <div className="text-right">
+                          <div className={`text-xl font-black ${report.score === report.totalQuestions ? 'text-green-400' : 'text-purple-400'}`}>
+                            {report.score} / {report.totalQuestions}
+                          </div>
+                          <p className="text-xs text-slate-500 uppercase tracking-widest">Score</p>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg text-purple-200 text-sm leading-relaxed space-y-2">
+                        {report.remediationText.split('\n').map((line: string, i: number) => {
+                          if (line.includes('NEXT RECOMMENDED TOPIC:')) {
+                            return (
+                              <div key={i} className="mt-4 p-3 bg-cyan-900/30 border border-cyan-500/40 rounded-lg flex items-center gap-3">
+                                <BookOpen className="text-cyan-400" size={18} />
+                                <div>
+                                  <p className="text-xs font-bold text-cyan-500 uppercase tracking-widest mb-1">AI Recommendation</p>
+                                  <p className="text-cyan-200 font-medium">{line.replace('NEXT RECOMMENDED TOPIC:', '').trim()}</p>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return (
+                            <p key={i} className={`${line.trim().startsWith('-') ? 'ml-4 flex gap-2 items-start text-purple-300' : ''}`}>
+                              {line.trim().startsWith('-') && <span className="text-purple-400 mt-[2px]">•</span>}
+                              <span>{line.replace(/^-/, '').trim()}</span>
+                            </p>
+                          );
+                        })}
                       </div>
                     </div>
-                    {report.score < report.totalQuestions && (
-                      <div className="p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg text-purple-200 text-sm leading-relaxed space-y-2">
-                        {report.remediationText.split('\n').map((line: string, i: number) => (
-                          <p key={i} className={`${line.trim().startsWith('-') ? 'ml-4 flex gap-2 items-start text-cyan-200' : ''}`}>
-                            {line.trim().startsWith('-') && <span className="text-cyan-400 mt-[2px]">•</span>}
-                            <span>{line.replace(/^-/, '').trim()}</span>
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 ))
               )}
            </div>

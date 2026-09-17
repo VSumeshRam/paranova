@@ -59,46 +59,38 @@ export async function POST(req: NextRequest) {
     let remediationReport = 'Great job! You showed strong mastery of this topic.';
     let learningMap = [];
     
-    if (wrongResults.length > 0) {
-      const geminiKey = process.env.GEMINI_API_KEY;
-      if (geminiKey) {
-        try {
-          const wrongAnswersContext = wrongResults.map((r: any) => 
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (geminiKey) {
+      try {
+        let wrongAnswersContext = "The student got a PERFECT SCORE! No mistakes were made.";
+        if (wrongResults.length > 0) {
+          wrongAnswersContext = wrongResults.map((r: any) => 
             `Question ${r.qNum}:\nPrompt: "${r.textPrompt}"\nStudent Answered: "${r.submission}"\nCorrect Answer: "${r.expectedAnswer}"`
           ).join('\n\n');
+        }
 
-        const prompt = `The student just completed a 10-question quiz on "${node.label}" (${node.description}) and made ${wrongResults.length} mistakes.
-Here are the specific mistakes they made:
+      const prompt = `The student just completed a 10-question quiz on "${node.label}" (${node.description}) and made ${wrongResults.length} mistakes.
+Here are their mistakes (if any):
 
 ${wrongAnswersContext}
 
-Analyze their mistakes and provide a comprehensive 2-paragraph study remediation report addressing their fundamental misunderstandings. 
-Then, on a new line, provide exactly 3 bullet points of highly specific learning materials (e.g. YouTube search terms, specific textbook concepts to Google, or prerequisite topics). Format the bullets with a '-' prefix.
-Finally, at the very end of your response, output a JSON array of objects mapping the EXACT failed Question Numbers to the specific micro-topic the student must relearn to fix that mistake. Enclose the JSON array in <LEARNING_MAP> tags.
-Example format:
-<LEARNING_MAP>
-[
-  { "qNum": 3, "topicToRelearn": "Thermodynamics Law 2", "reason": "Failed to understand entropy" },
-  { "qNum": 7, "topicToRelearn": "Kinetic Energy", "reason": "Confused formula with potential energy" }
-]
-</LEARNING_MAP>`;
+1. If they made mistakes, provide a comprehensive 2-paragraph study remediation report addressing their fundamental misunderstandings, followed by 3 bullet points of highly specific learning materials formatted with a '-' prefix. If they got a perfect score, just write a 1-sentence congratulatory message.
+2. In a separate new paragraph, you MUST output a recommendation prefixed exactly with "NEXT RECOMMENDED TOPIC: ". Recommend the specific topic they should study next (a prerequisite if they failed, or an advanced continuation if they succeeded).
+3. Finally, if they made mistakes, output a JSON array of objects mapping the EXACT failed Question Numbers to the specific micro-topic the student must relearn. Enclose the JSON array in <LEARNING_MAP> tags. Example: <LEARNING_MAP>[{ "qNum": 3, "topicToRelearn": "Entropy", "reason": "Confused formula" }]</LEARNING_MAP>. If they got a perfect score, output <LEARNING_MAP>[]</LEARNING_MAP>.`;
 
-        const llmRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-          })
-        });
-        
-        const data = await llmRes.json();
-        remediationReport = data.candidates[0].content.parts[0].text;
-      } catch (e) {
-        console.error("LLM batch suggestion failed", e);
-        remediationReport = `You missed ${wrongResults.length} questions. Please review the core concepts of ${node.label}.`;
-      }
-    } else {
-      remediationReport = `You missed ${wrongResults.length} questions. Please review the core concepts of ${node.label}.`;
+      const llmRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+      
+      const data = await llmRes.json();
+      remediationReport = data.candidates[0].content.parts[0].text;
+    } catch (e) {
+      console.error("LLM batch suggestion failed", e);
+      remediationReport = `You missed ${wrongResults.length} questions. NEXT RECOMMENDED TOPIC: Review ${node.label}`;
     }
   }
 
